@@ -83,8 +83,9 @@ export async function analyzeTLS(hostname: string): Promise<TLSAnalysis> {
 
           // Certificate
           const cert = socket.getPeerCertificate();
-          const certIssuer = cert?.issuer ? (cert.issuer.O || cert.issuer.CN || "Unknown") : null;
-          const certExpiry = cert?.valid_to || null;
+          const issuerObj = cert?.issuer as Record<string, string | string[]> | undefined;
+          const certIssuer = issuerObj ? String(issuerObj.O || issuerObj.CN || "Unknown") : null;
+          const certExpiry = cert?.valid_to ? String(cert.valid_to) : null;
           let certDaysLeft: number | null = null;
 
           if (certExpiry) {
@@ -100,8 +101,9 @@ export async function analyzeTLS(hostname: string): Promise<TLSAnalysis> {
           }
 
           // Self-signed check
-          if (cert?.issuer && cert?.subject) {
-            if (cert.issuer.CN === cert.subject.CN && cert.issuer.O === cert.subject.O) {
+          const subjectObj = cert?.subject as Record<string, string | string[]> | undefined;
+          if (issuerObj && subjectObj) {
+            if (String(issuerObj.CN || "") === String(subjectObj.CN || "") && String(issuerObj.O || "") === String(subjectObj.O || "")) {
               issues.push("Self-signed certificate detected — not trusted by browsers");
             }
           }
