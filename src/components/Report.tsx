@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ScanResult, Finding, CMMCConcern, LeadInfo, EmailSecurity, BreachInfo, DomainInfo } from "@/lib/types";
+import Image from "next/image";
+import { ScanResult, Finding, CMMCConcern, LeadInfo, EmailSecurity, BreachInfo, DomainInfo, GitHubExposure } from "@/lib/types";
 
 interface Props {
   result: ScanResult;
@@ -49,9 +50,7 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
     <div className="finding-card border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-[var(--text-secondary)] text-sm font-mono">
-            #{index + 1}
-          </span>
+          <span className="text-[var(--text-secondary)] text-sm font-mono">#{index + 1}</span>
           <CategoryIcon category={finding.category} />
           <span className="text-xs text-[var(--text-secondary)] border border-[var(--border)] rounded px-2 py-0.5">
             {finding.category}
@@ -60,18 +59,11 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
         <ConfidenceBadge level={finding.confidence} />
       </div>
 
-      <h3 className="font-semibold mb-1 text-[var(--text-primary)]">
-        {finding.asset}
-      </h3>
-      <p className="text-sm text-[var(--text-secondary)] mb-3">
-        {finding.summary}
-      </p>
+      <h3 className="font-semibold mb-1 text-[var(--text-primary)]">{finding.asset}</h3>
+      <p className="text-sm text-[var(--text-secondary)] mb-3">{finding.summary}</p>
 
-      {/* Evidence */}
       <div className="mb-3">
-        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-          Evidence
-        </p>
+        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">Evidence</p>
         <ul className="space-y-1">
           {finding.evidence.map((e, i) => (
             <li key={i} className="text-sm text-[var(--text-secondary)] flex items-start gap-2">
@@ -82,45 +74,27 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
         </ul>
       </div>
 
-      {/* URL */}
-      <div className="text-xs text-[var(--text-secondary)] font-mono break-all mb-3">
-        {finding.url}
-      </div>
+      <div className="text-xs text-[var(--text-secondary)] font-mono break-all mb-3">{finding.url}</div>
 
-      {/* Missing headers */}
       {finding.missingHeaders.length > 0 && (
         <div className="mb-3">
-          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-            Missing Headers
-          </p>
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">Missing Headers</p>
           <div className="flex flex-wrap gap-1">
             {finding.missingHeaders.map((h) => (
-              <span
-                key={h}
-                className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-0.5 font-mono"
-              >
-                {h}
-              </span>
+              <span key={h} className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-0.5 font-mono">{h}</span>
             ))}
           </div>
         </div>
       )}
 
-      {/* CMMC Concerns */}
       {finding.cmmcConcerns.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">
-            CMMC-Relevant Concerns
-          </p>
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">CMMC-Relevant Concerns</p>
           <div className="space-y-2">
             {finding.cmmcConcerns.slice(0, 3).map((c, i) => (
               <div key={i} className="text-sm border-l-2 border-[var(--accent)] pl-3">
-                <span className="font-mono text-[var(--accent)] text-xs">
-                  {c.family}
-                </span>{" "}
-                <span className="text-[var(--text-secondary)]">
-                  {c.summary}
-                </span>
+                <span className="font-mono text-[var(--accent)] text-xs">{c.family}</span>{" "}
+                <span className="text-[var(--text-secondary)]">{c.summary}</span>
               </div>
             ))}
           </div>
@@ -140,27 +114,16 @@ function CMMCMappingSection({ concerns }: { concerns: CMMCConcern[] }) {
   return (
     <div className="space-y-4">
       {Object.entries(grouped).map(([family, items]) => (
-        <div
-          key={family}
-          className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-card)]"
-        >
+        <div key={family} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-card)]">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-mono text-[var(--accent)] font-bold">
-              {family}
-            </span>
-            <span className="text-sm text-[var(--text-secondary)]">
-              {items[0].familyName}
-            </span>
+            <span className="font-mono text-[var(--accent)] font-bold">{family}</span>
+            <span className="text-sm text-[var(--text-secondary)]">{items[0].familyName}</span>
           </div>
           <div className="space-y-2">
             {items.map((c, i) => (
               <div key={i} className="text-sm">
-                <p className="text-[var(--text-primary)] font-medium mb-0.5">
-                  {c.summary}
-                </p>
-                <p className="text-[var(--text-secondary)] text-xs">
-                  {c.rationale}
-                </p>
+                <p className="text-[var(--text-primary)] font-medium mb-0.5">{c.summary}</p>
+                <p className="text-[var(--text-secondary)] text-xs">{c.rationale}</p>
               </div>
             ))}
           </div>
@@ -191,9 +154,7 @@ function EmailSecuritySection({ data }: { data: EmailSecurity }) {
               <span className={`w-2 h-2 rounded-full ${check.found ? "bg-green-400" : "bg-red-400"}`} />
             </div>
             {check.record && (
-              <p className="text-xs text-[var(--text-secondary)] font-mono break-all mb-2 max-h-16 overflow-y-auto">
-                {check.record}
-              </p>
+              <p className="text-xs text-[var(--text-secondary)] font-mono break-all mb-2 max-h-16 overflow-y-auto">{check.record}</p>
             )}
             {check.issues.length > 0 && (
               <div className="space-y-1">
@@ -208,7 +169,7 @@ function EmailSecuritySection({ data }: { data: EmailSecurity }) {
           </div>
         ))}
       </div>
-      {(data.overallRating !== "Good") && (
+      {data.overallRating !== "Good" && (
         <div className="mt-3 text-sm border-l-2 border-[var(--warning)] pl-3">
           <span className="font-mono text-[var(--warning)] text-xs">SC</span>{" "}
           <span className="text-[var(--text-secondary)]">
@@ -224,7 +185,7 @@ function BreachSection({ data }: { data: BreachInfo }) {
   if (data.totalBreaches === 0) {
     return (
       <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-400" />
           <p className="text-sm text-[var(--text-secondary)]">{data.summary}</p>
         </div>
@@ -245,15 +206,11 @@ function BreachSection({ data }: { data: BreachInfo }) {
           <div key={i} className="flex items-center justify-between border border-[var(--border)] rounded p-3 bg-[var(--bg-secondary)]">
             <div>
               <p className="text-sm font-medium text-[var(--text-primary)]">{breach.name}</p>
-              <p className="text-xs text-[var(--text-secondary)]">
-                {breach.date} &bull; {breach.pwnCount.toLocaleString()} accounts
-              </p>
+              <p className="text-xs text-[var(--text-secondary)]">{breach.date} &bull; {breach.pwnCount.toLocaleString()} accounts</p>
             </div>
             <div className="flex flex-wrap gap-1 ml-4">
               {breach.dataClasses.slice(0, 3).map((dc) => (
-                <span key={dc} className="text-xs bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5">
-                  {dc}
-                </span>
+                <span key={dc} className="text-xs bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5">{dc}</span>
               ))}
               {breach.dataClasses.length > 3 && (
                 <span className="text-xs text-[var(--text-secondary)]">+{breach.dataClasses.length - 3}</span>
@@ -261,11 +218,6 @@ function BreachSection({ data }: { data: BreachInfo }) {
             </div>
           </div>
         ))}
-        {data.breaches.length > 5 && (
-          <p className="text-xs text-[var(--text-secondary)] text-center pt-1">
-            +{data.breaches.length - 5} additional breaches
-          </p>
-        )}
       </div>
       <div className="mt-3 text-sm border-l-2 border-[var(--danger)] pl-3">
         <span className="font-mono text-[var(--danger)] text-xs">IR / IA</span>{" "}
@@ -329,6 +281,187 @@ function DomainInfoSection({ data }: { data: DomainInfo }) {
   );
 }
 
+function GitHubSection({ data }: { data: GitHubExposure }) {
+  if (!data.orgFound && data.codeFindings.length === 0) {
+    return (
+      <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-400" />
+          <p className="text-sm text-[var(--text-secondary)]">{data.summary}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)] space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-[var(--text-secondary)]">{data.summary}</p>
+        {data.orgFound && (
+          <span className="text-xs px-2 py-0.5 rounded border border-[var(--accent)]/30 text-[var(--accent)]">
+            Org: {data.orgName}
+          </span>
+        )}
+      </div>
+
+      {/* Code findings */}
+      {data.codeFindings.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">Code Exposure Findings</p>
+          <div className="space-y-2">
+            {data.codeFindings.map((f, i) => (
+              <div key={i} className="border border-[var(--border)] rounded p-3 bg-[var(--bg-secondary)]">
+                <div className="flex items-start justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-primary)] border border-[var(--border)]">
+                      {f.type.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <ConfidenceBadge level={f.confidence} />
+                </div>
+                <p className="text-sm text-[var(--text-primary)] font-medium">{f.description}</p>
+                <p className="text-xs text-[var(--text-secondary)] font-mono mt-1">
+                  {f.repo}/{f.file}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Flagged repos */}
+      {data.repos.filter((r) => r.concerns.length > 0).length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">Flagged Repositories</p>
+          <div className="space-y-2">
+            {data.repos.filter((r) => r.concerns.length > 0).map((repo, i) => (
+              <div key={i} className="border border-[var(--border)] rounded p-3 bg-[var(--bg-secondary)]">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium text-[var(--text-primary)] font-mono">{repo.fullName}</p>
+                  {repo.language && (
+                    <span className="text-xs text-[var(--text-secondary)]">{repo.language}</span>
+                  )}
+                </div>
+                {repo.description && (
+                  <p className="text-xs text-[var(--text-secondary)] mb-2">{repo.description}</p>
+                )}
+                {repo.concerns.map((concern, ci) => (
+                  <p key={ci} className="text-xs text-[var(--warning)] flex items-start gap-2">
+                    <span className="mt-0.5">&#x26A0;</span>
+                    <span>{concern}</span>
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Public repos summary */}
+      {data.orgFound && data.repos.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">
+            Public Repositories ({data.orgProfile?.publicRepos || data.repos.length})
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {data.repos.filter((r) => r.concerns.length === 0).slice(0, 6).map((repo, i) => (
+              <div key={i} className="border border-[var(--border)] rounded p-2 bg-[var(--bg-secondary)] text-xs">
+                <p className="font-mono text-[var(--text-primary)] truncate">{repo.name}</p>
+                <p className="text-[var(--text-secondary)] truncate">{repo.description || "No description"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CMMC mapping */}
+      {data.cmmcConcerns.length > 0 && (
+        <div className="space-y-2">
+          {data.cmmcConcerns.slice(0, 3).map((c, i) => (
+            <div key={i} className="text-sm border-l-2 border-[var(--accent)] pl-3">
+              <span className="font-mono text-[var(--accent)] text-xs">{c.family}</span>{" "}
+              <span className="text-[var(--text-secondary)]">{c.summary}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CTASection({ result, lead }: { result: ScanResult; lead: LeadInfo }) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function handleRequestReview() {
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/request-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead,
+          scanSummary: {
+            domain: result.domain,
+            findingCount: result.findings.length,
+            breachCount: result.breachInfo?.totalBreaches || 0,
+            emailRating: result.emailSecurity?.overallRating || "N/A",
+            githubFindings: result.githubExposure?.codeFindings.length || 0,
+            executiveSummary: result.executiveSummary,
+            findings: result.findings.map((f) => `[${f.confidence}] ${f.asset} — ${f.summary}`),
+            redFlags: result.redFlags,
+          },
+        }),
+      });
+      if (res.ok) {
+        setStatus("sent");
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "sent") {
+    return (
+      <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--success)]/30 rounded-lg p-8 text-center">
+        <div className="w-14 h-14 rounded-full bg-[var(--success)]/20 flex items-center justify-center mx-auto mb-4">
+          <span className="text-3xl">&#x2705;</span>
+        </div>
+        <h2 className="text-xl font-semibold mb-3">Thank you for your interest</h2>
+        <p className="text-[var(--text-secondary)] max-w-xl mx-auto">
+          We&apos;ve sent a confirmation to <strong className="text-[var(--text-primary)]">{lead.email}</strong>.
+          A member of our team will be in touch within <strong className="text-[var(--text-primary)]">24 business hours</strong> to
+          walk through your findings and identify remediation opportunities.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 text-center">
+      <h2 className="text-xl font-semibold mb-3">Want to validate these findings?</h2>
+      <p className="text-[var(--text-secondary)] max-w-xl mx-auto mb-6">
+        These findings are externally observable only. In a 30-minute review,
+        we can validate whether they represent real CMMC risk, false
+        positives, or quick remediation opportunities.
+      </p>
+      <button
+        onClick={handleRequestReview}
+        disabled={status === "sending"}
+        className="inline-block px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+      >
+        {status === "sending" ? "Requesting…" : "Schedule a Review with CinderLabs"}
+      </button>
+      {status === "error" && (
+        <p className="text-[var(--danger)] text-sm mt-3">
+          Something went wrong. Please try again or email us at info@cinderlabs.ai.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function copyEmailSummary(result: ScanResult, lead: LeadInfo) {
   const lines: string[] = [
     `CMMC Exposure Proof — ${result.domain}`,
@@ -355,6 +488,11 @@ function copyEmailSummary(result: ScanResult, lead: LeadInfo) {
     lines.push(result.breachInfo.summary);
   }
 
+  if (result.githubExposure && (result.githubExposure.codeFindings.length > 0 || result.githubExposure.orgFound)) {
+    lines.push(`\nGITHUB EXPOSURE`);
+    lines.push(result.githubExposure.summary);
+  }
+
   lines.push("\nASSESSOR RED FLAGS");
   for (const rf of result.redFlags) {
     lines.push(`- ${rf}`);
@@ -372,82 +510,6 @@ function copyEmailSummary(result: ScanResult, lead: LeadInfo) {
   navigator.clipboard.writeText(lines.join("\n"));
 }
 
-function CTASection({ result, lead }: { result: ScanResult; lead: LeadInfo }) {
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-
-  async function handleRequestReview() {
-    setStatus("sending");
-    try {
-      const res = await fetch("/api/request-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lead,
-          scanSummary: {
-            domain: result.domain,
-            findingCount: result.findings.length,
-            breachCount: result.breachInfo?.totalBreaches || 0,
-            emailRating: result.emailSecurity?.overallRating || "N/A",
-            executiveSummary: result.executiveSummary,
-            findings: result.findings.map((f) => `[${f.confidence}] ${f.asset} — ${f.summary}`),
-            redFlags: result.redFlags,
-          },
-        }),
-      });
-      if (res.ok) {
-        setStatus("sent");
-      } else {
-        setStatus("error");
-      }
-    } catch {
-      setStatus("error");
-    }
-  }
-
-  if (status === "sent") {
-    return (
-      <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--success)]/30 rounded-lg p-8 text-center">
-        <div className="w-14 h-14 rounded-full bg-[var(--success)]/20 flex items-center justify-center mx-auto mb-4">
-          <span className="text-3xl">&#x2705;</span>
-        </div>
-        <h2 className="text-xl font-semibold mb-3">
-          Review requested
-        </h2>
-        <p className="text-[var(--text-secondary)] max-w-xl mx-auto">
-          We&apos;ve received your request and sent a confirmation to <strong className="text-[var(--text-primary)]">{lead.email}</strong>.
-          A member of our team will reach out within <strong className="text-[var(--text-primary)]">24 business hours</strong> to
-          walk through your findings and identify quick wins.
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 text-center">
-      <h2 className="text-xl font-semibold mb-3">
-        Want to validate these findings?
-      </h2>
-      <p className="text-[var(--text-secondary)] max-w-xl mx-auto mb-6">
-        These findings are externally observable only. In a 30-minute review,
-        we can validate whether they represent real CMMC risk, false
-        positives, or quick remediation opportunities.
-      </p>
-      <button
-        onClick={handleRequestReview}
-        disabled={status === "sending"}
-        className="inline-block px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium rounded-lg transition-colors disabled:opacity-50"
-      >
-        {status === "sending" ? "Requesting…" : "Schedule a Review with CinderLabs"}
-      </button>
-      {status === "error" && (
-        <p className="text-[var(--danger)] text-sm mt-3">
-          Something went wrong. Please try again or email us at info@cinderlabs.ai.
-        </p>
-      )}
-    </section>
-  );
-}
-
 export default function Report({ result, lead, onReset }: Props) {
   const scanDate = new Date(result.scanTimestamp).toLocaleDateString("en-US", {
     year: "numeric",
@@ -455,7 +517,6 @@ export default function Report({ result, lead, onReset }: Props) {
     day: "numeric",
   });
 
-  // Count total issues across all new checks
   const emailIssueCount = result.emailSecurity
     ? result.emailSecurity.spf.issues.length +
       result.emailSecurity.dkim.issues.length +
@@ -463,7 +524,8 @@ export default function Report({ result, lead, onReset }: Props) {
     : 0;
   const totalIssues = result.findings.length + emailIssueCount +
     (result.breachInfo?.totalBreaches || 0) +
-    (result.domainInfo?.issues.length || 0);
+    (result.domainInfo?.issues.length || 0) +
+    (result.githubExposure?.codeFindings.length || 0);
 
   return (
     <div className="min-h-screen" id="report-root">
@@ -471,9 +533,7 @@ export default function Report({ result, lead, onReset }: Props) {
       <header className="border-b border-[var(--border)] px-6 py-4 sticky top-0 bg-[var(--bg-primary)] z-40 no-print">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[var(--accent)] flex items-center justify-center font-bold text-sm">
-              CL
-            </div>
+            <Image src="/logo.png" alt="CinderLabs" width={32} height={32} className="rounded" />
             <span className="text-[var(--text-secondary)] text-sm font-medium">
               CMMC Exposure Proof&#8482;
             </span>
@@ -482,14 +542,12 @@ export default function Report({ result, lead, onReset }: Props) {
             <button
               onClick={() => copyEmailSummary(result, lead)}
               className="px-3 py-1.5 text-sm border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
-              title="Copy a text summary to clipboard"
             >
               Copy Summary
             </button>
             <button
               onClick={() => window.print()}
               className="px-3 py-1.5 text-sm border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
-              title="Print or save as PDF"
             >
               Export PDF
             </button>
@@ -519,7 +577,7 @@ export default function Report({ result, lead, onReset }: Props) {
           </div>
           <h1 className="text-3xl font-bold mb-1">{result.domain}</h1>
           <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)] flex-wrap">
-            <span>{result.subdomainsDiscovered} hostnames discovered</span>
+            <span>{result.subdomainsDiscovered} hostnames</span>
             <span>&bull;</span>
             <span>{result.assetsProbed} assets probed</span>
             <span>&bull;</span>
@@ -532,52 +590,26 @@ export default function Report({ result, lead, onReset }: Props) {
         {/* Executive Summary */}
         <section>
           <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-            <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+            <span className="w-1 h-6 bg-[var(--accent)] rounded accent-bar" />
             Executive Summary
           </h2>
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5">
-            <p className="text-[var(--text-primary)] leading-relaxed">
-              {result.executiveSummary}
-            </p>
+            <p className="text-[var(--text-primary)] leading-relaxed">{result.executiveSummary}</p>
           </div>
         </section>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           {[
-            {
-              label: "Confirmed",
-              value: result.findings.filter((f) => f.confidence === "Confirmed").length,
-              color: "var(--danger)",
-            },
-            {
-              label: "Likely",
-              value: result.findings.filter((f) => f.confidence === "Likely").length,
-              color: "var(--warning)",
-            },
-            {
-              label: "Needs Validation",
-              value: result.findings.filter((f) => f.confidence === "Needs Validation").length,
-              color: "var(--accent)",
-            },
-            {
-              label: "CMMC Families",
-              value: new Set(result.cmmcMappingSummary.map((c) => c.family)).size,
-              color: "var(--text-primary)",
-            },
-            {
-              label: "Known Breaches",
-              value: result.breachInfo?.totalBreaches || 0,
-              color: result.breachInfo?.totalBreaches ? "var(--danger)" : "var(--success)",
-            },
+            { label: "Confirmed", value: result.findings.filter((f) => f.confidence === "Confirmed").length, color: "var(--danger)" },
+            { label: "Likely", value: result.findings.filter((f) => f.confidence === "Likely").length, color: "var(--warning)" },
+            { label: "Needs Review", value: result.findings.filter((f) => f.confidence === "Needs Validation").length, color: "var(--accent)" },
+            { label: "CMMC Families", value: new Set(result.cmmcMappingSummary.map((c) => c.family)).size, color: "var(--text-primary)" },
+            { label: "Breaches", value: result.breachInfo?.totalBreaches || 0, color: result.breachInfo?.totalBreaches ? "var(--danger)" : "var(--success)" },
+            { label: "Code Findings", value: result.githubExposure?.codeFindings.length || 0, color: result.githubExposure?.codeFindings.length ? "var(--warning)" : "var(--success)" },
           ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-4 text-center"
-            >
-              <p className="text-2xl font-bold" style={{ color: s.color }}>
-                {s.value}
-              </p>
+            <div key={s.label} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
               <p className="text-xs text-[var(--text-secondary)] mt-1">{s.label}</p>
             </div>
           ))}
@@ -587,7 +619,7 @@ export default function Report({ result, lead, onReset }: Props) {
         {result.emailSecurity && (
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-              <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+              <span className="w-1 h-6 bg-[var(--accent)] rounded accent-bar" />
               Email Authentication
             </h2>
             <EmailSecuritySection data={result.emailSecurity} />
@@ -605,11 +637,22 @@ export default function Report({ result, lead, onReset }: Props) {
           </section>
         )}
 
+        {/* GitHub Exposure */}
+        {result.githubExposure && (
+          <section>
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <span className={`w-1 h-6 rounded ${result.githubExposure.codeFindings.length > 0 ? "bg-[var(--warning)]" : "bg-[var(--success)]"}`} />
+              GitHub &amp; Code Exposure
+            </h2>
+            <GitHubSection data={result.githubExposure} />
+          </section>
+        )}
+
         {/* Domain Infrastructure */}
         {result.domainInfo && (
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-              <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+              <span className="w-1 h-6 bg-[var(--accent)] rounded accent-bar" />
               Domain Infrastructure
             </h2>
             <DomainInfoSection data={result.domainInfo} />
@@ -620,7 +663,7 @@ export default function Report({ result, lead, onReset }: Props) {
         {result.findings.length > 0 && (
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-              <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+              <span className="w-1 h-6 bg-[var(--accent)] rounded accent-bar" />
               External Asset Findings
             </h2>
             <div className="space-y-4">
@@ -635,7 +678,7 @@ export default function Report({ result, lead, onReset }: Props) {
         {result.cmmcMappingSummary.length > 0 && (
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-              <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+              <span className="w-1 h-6 bg-[var(--accent)] rounded accent-bar" />
               CMMC-Relevant Concern Mapping
             </h2>
             <p className="text-sm text-[var(--text-secondary)] mb-4">
@@ -654,8 +697,7 @@ export default function Report({ result, lead, onReset }: Props) {
               Assessor Red Flags
             </h2>
             <p className="text-sm text-[var(--text-secondary)] mb-4">
-              Questions a CMMC assessor or compliance lead might raise based on
-              these external findings.
+              Questions a CMMC assessor or compliance lead might raise based on these findings.
             </p>
             <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-5 space-y-3">
               {result.redFlags.map((rf, i) => (
@@ -687,22 +729,23 @@ export default function Report({ result, lead, onReset }: Props) {
         {/* CTA */}
         <CTASection result={result} lead={lead} />
 
-        {/* Methodology note */}
+        {/* Methodology */}
         <div className="text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-6 space-y-2">
           <p>
             <strong>Methodology:</strong> This report was generated using
             passive, non-intrusive external checks including certificate
             transparency log analysis, DNS resolution, HTTP response inspection,
             security header evaluation, email authentication record analysis (SPF/DKIM/DMARC),
-            public breach database queries, and domain registration analysis.
+            public breach database queries, domain registration analysis (RDAP),
+            and public GitHub repository / code search analysis.
             No port scanning, vulnerability exploitation, or internal network access was performed.
           </p>
           <p>
             <strong>Limitations:</strong> External-only analysis cannot
             determine internal security controls, MFA enforcement, or actual
             compliance posture. Breach data reflects public disclosures and may not
-            include all incidents. Findings should be validated by qualified
-            personnel before remediation.
+            include all incidents. GitHub analysis covers public repositories only.
+            Findings should be validated by qualified personnel before remediation.
           </p>
           <p>
             &copy; {new Date().getFullYear()} CinderLabs. CMMC Exposure Proof

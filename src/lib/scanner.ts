@@ -3,6 +3,7 @@ import { mapConcerns, generateRedFlags, generateNextSteps } from "./cmmc";
 import { checkEmailSecurity } from "./email-security";
 import { checkBreaches } from "./breach-check";
 import { checkDomainInfo } from "./domain-info";
+import { checkGitHub } from "./github-check";
 
 // ---- Subdomain discovery via crt.sh ----
 
@@ -366,11 +367,12 @@ export async function runScan(input: string): Promise<ScanResult> {
   }
 
   // Discover subdomains + run new checks in parallel
-  const [allSubdomains, emailSecurity, breachInfo, domainInfo] = await Promise.all([
+  const [allSubdomains, emailSecurity, breachInfo, domainInfo, githubExposure] = await Promise.all([
     discoverSubdomains(domain),
     checkEmailSecurity(domain),
     checkBreaches(domain),
     checkDomainInfo(domain),
+    checkGitHub(domain, inputType === "company_name" ? input : undefined),
   ]);
 
   const prioritized = prioritizeSubdomains(allSubdomains, domain);
@@ -407,14 +409,17 @@ export async function runScan(input: string): Promise<ScanResult> {
   const hasMissing = findings.some((f) => f.missingHeaders.length >= 3);
   const hasTls = findings.some((f) => f.url.startsWith("http://"));
 
-  const redFlags = generateRedFlags(hasAuth, hasAdmin, hasRemote, hasMissing, hasTls, allSubdomains.length, emailSecurity, breachInfo);
-  const nextSteps = generateNextSteps(findings, emailSecurity, breachInfo, domainInfo);
+  const redFlags = generateRedFlags(hasAuth, hasAdmin, hasRemote, hasMissing, hasTls, allSubdomains.length, emailSecurity, breachInfo, githubExposure);
+  const nextSteps = generateNextSteps(findings, emailSecurity, breachInfo, domainInfo, githubExposure);
   const executiveSummary = generateExecutiveSummary(domain, findings, allSubdomains.length);
 
-  // Aggregate CMMC concerns
+  // Aggregate CMMC concerns (include GitHub concerns)
   const seenConcerns = new Set<string>();
-  const cmmcMappingSummary = findings
-    .flatMap((f) => f.cmmcConcerns)
+  const allConcerns = [
+    ...findings.flatMap((f) => f.cmmcConcerns),
+    ...(githubExposure?.cmmcConcerns || []),
+  ];
+  const cmmcMappingSummary = allConcerns
     .filter((c) => {
       const key = `${c.family}:${c.summary}`;
       if (seenConcerns.has(key)) return false;
@@ -438,5 +443,6 @@ export async function runScan(input: string): Promise<ScanResult> {
     emailSecurity,
     breachInfo,
     domainInfo,
+    githubExposure,
   };
 }

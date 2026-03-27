@@ -64,6 +64,17 @@ export interface DomainInfo {
   summary: string;
 }
 
+// GitHub exposure
+export interface GitHubExposure {
+  orgFound: boolean;
+  orgName: string | null;
+  orgProfile: { publicRepos: number; avatarUrl: string; description: string | null } | null;
+  repos: { name: string; fullName: string; url: string; description: string | null; language: string | null; stars: number; forks: number; updatedAt: string; isForked: boolean; topics: string[]; concerns: string[] }[];
+  codeFindings: { type: string; file: string; repo: string; repoUrl: string; snippet: string; confidence: string; description: string }[];
+  summary: string;
+  cmmcConcerns: { family: string; familyName: string; summary: string; rationale: string }[];
+}
+
 // Lead capture
 export interface LeadInfo {
   name: string;
@@ -88,4 +99,5 @@ export interface ScanResult {
   emailSecurity?: EmailSecurity;
   breachInfo?: BreachInfo;
   domainInfo?: DomainInfo;
+  githubExposure?: GitHubExposure;
 }

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       subject: `🔥 Review Request: ${lead.name} — ${scanSummary.domain}`,
       html: `
         <div style="font-family: -apple-system, sans-serif; max-width: 600px;">
-          <h2 style="color: #3b82f6;">New CMMC Review Request</h2>
+          <h2 style="color: #e8631e;">New CMMC Review Request</h2>
           <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${lead.name}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><a href="mailto:${lead.email}">${lead.email}</a></td></tr>
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Findings</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${scanSummary.findingCount} findings</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Breaches</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${scanSummary.breachCount || 0} known</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email Security</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${scanSummary.emailRating || "N/A"}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">GitHub Code Findings</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${scanSummary.githubFindings || 0}</td></tr>
           </table>
           <h3>Executive Summary</h3>
           <p style="color: #555;">${scanSummary.executiveSummary}</p>
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
       html: `
         <div style="font-family: -apple-system, sans-serif; max-width: 600px; color: #333;">
           <div style="background: #0a0e17; padding: 24px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #3b82f6; margin: 0; font-size: 20px;">CinderLabs</h1>
+            <img src="https://img1.wsimg.com/isteam/ip/4e738743-b9e1-499a-bdaa-e373b73b135b/blob-bb184d9.png/:/rs=h:50,cg:true,m/qt=q:95" alt="CinderLabs" style="height: 40px; margin-bottom: 8px;" />
+            <h1 style="color: #e8631e; margin: 0; font-size: 20px;">CinderLabs</h1>
           </div>
           <div style="padding: 24px; border: 1px solid #eee; border-top: none; border-radius: 0 0 8px 8px;">
             <p>Hi ${lead.name.split(" ")[0]},</p>
@@ -77,12 +79,12 @@ export async function POST(req: NextRequest) {
               <li>Quick remediation opportunities</li>
               <li>How these findings map to your CMMC assessment scope</li>
             </ul>
-            <p>In the meantime, you can revisit your report at <a href="https://exposure.cinderlabs.ai" style="color: #3b82f6;">exposure.cinderlabs.ai</a>.</p>
+            <p>In the meantime, you can revisit your report at <a href="https://exposure.cinderlabs.ai" style="color: #e8631e;">exposure.cinderlabs.ai</a>.</p>
             <p style="margin-top: 24px;">Best,<br/><strong>The CinderLabs Team</strong></p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
             <p style="color: #999; font-size: 12px;">
               CinderLabs — Cybersecurity & AI Risk Consultancy<br/>
-              <a href="https://cinderlabs.ai" style="color: #3b82f6;">cinderlabs.ai</a>
+              <a href="https://cinderlabs.ai" style="color: #e8631e;">cinderlabs.ai</a>
             </p>
           </div>
         </div>

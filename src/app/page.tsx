@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ScanResult, LeadInfo } from "@/lib/types";
 import Report from "@/components/Report";
+import Image from "next/image";
 
 const LOADING_MESSAGES = [
   "Querying certificate transparency logs…",
@@ -10,6 +11,7 @@ const LOADING_MESSAGES = [
   "Checking email authentication (SPF/DKIM/DMARC)…",
   "Querying breach databases…",
   "Analyzing domain registration…",
+  "Scanning public GitHub repositories…",
   "Probing public-facing assets…",
   "Inspecting security headers…",
   "Detecting authentication surfaces…",
@@ -39,7 +41,6 @@ export default function Home() {
     setPendingResult(null);
     setShowGate(false);
 
-    // Cycle loading messages
     let msgIdx = 0;
     setLoadingMsg(LOADING_MESSAGES[0]);
     const interval = setInterval(() => {
@@ -59,10 +60,8 @@ export default function Home() {
       if (!res.ok) {
         setError(data.error || "Scan failed.");
       } else {
-        // Show the gate instead of the report
         setPendingResult(data);
         setShowGate(true);
-        // Pre-fill company from input
         setLead((prev) => ({ ...prev, company: input.trim() }));
       }
     } catch {
@@ -82,7 +81,6 @@ export default function Home() {
       setGateError("Please enter a valid email address.");
       return;
     }
-    // Block obvious personal emails
     const personalDomains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "mail.com", "protonmail.com"];
     const emailDomain = lead.email.split("@")[1]?.toLowerCase();
     if (personalDomains.includes(emailDomain)) {
@@ -92,7 +90,7 @@ export default function Home() {
 
     setGateError("");
 
-    // Fire lead to API (non-blocking re-send with lead data)
+    // Fire lead to API (non-blocking)
     if (pendingResult) {
       fetch("/api/scan", {
         method: "POST",
@@ -105,7 +103,6 @@ export default function Home() {
     setShowGate(false);
   }
 
-  // If we have results, show the report
   if (result) {
     return (
       <Report
@@ -129,9 +126,7 @@ export default function Home() {
       <header className="border-b border-[var(--border)] px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[var(--accent)] flex items-center justify-center font-bold text-sm">
-              CL
-            </div>
+            <Image src="/logo.png" alt="CinderLabs" width={36} height={36} className="rounded" />
             <span className="text-[var(--text-secondary)] text-sm font-medium">
               CinderLabs
             </span>
@@ -155,9 +150,7 @@ export default function Home() {
             <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
               <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl max-w-md w-full p-8">
                 <div className="mb-6">
-                  <div className="w-12 h-12 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">&#x1F4CB;</span>
-                  </div>
+                  <Image src="/logo.png" alt="CinderLabs" width={48} height={48} className="mx-auto mb-4 rounded" />
                   <h2 className="text-xl font-bold mb-2">Your report is ready</h2>
                   <p className="text-[var(--text-secondary)] text-sm">
                     We found <strong className="text-[var(--text-primary)]">{pendingResult?.findings.length || 0} findings</strong> for{" "}
@@ -214,7 +207,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Title */}
+          {/* Logo + Title */}
+          <Image src="/logo.png" alt="CinderLabs" width={72} height={72} className="mx-auto mb-6 rounded-lg" />
           <h1 className="text-4xl font-bold mb-3 tracking-tight">
             CMMC Exposure Proof
             <span className="text-[var(--accent)]">&#8482;</span>
@@ -224,7 +218,7 @@ export default function Home() {
           </p>
           <p className="text-[var(--text-secondary)] text-sm mb-10 max-w-lg mx-auto">
             Enter a company domain or name. We&apos;ll check public-facing assets,
-            email authentication, breach exposure, and security posture
+            email authentication, breach exposure, code repositories, and security posture
             &mdash; mapped to CMMC-relevant concerns using only external evidence.
           </p>
 

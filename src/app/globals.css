@@ -3,14 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #111827;
-  --bg-card: #1a2235;
-  --border: #2a3650;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
+  --bg-primary: #1a1a1e;
+  --bg-secondary: #242428;
+  --bg-card: #2a2a2f;
+  --border: #3a3a42;
+  --accent: #e8631e;
+  --accent-hover: #d45518;
+  --accent-light: rgba(232, 99, 30, 0.15);
+  --text-primary: #f0ebe6;
+  --text-secondary: #9a9590;
   --danger: #ef4444;
   --warning: #f59e0b;
   --success: #10b981;
@@ -60,13 +61,13 @@ body {
 }
 .finding-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 20px rgba(232, 99, 30, 0.1);
 }
 
 /* Confidence badges */
 .badge-confirmed { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 .badge-likely { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-.badge-needs-validation { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-needs-validation { background: rgba(232, 99, 30, 0.15); color: #f0923e; border: 1px solid rgba(232, 99, 30, 0.3); }
 
 /* Print / PDF styles */
 @media print {
@@ -77,8 +78,10 @@ body {
   * { color: #111 !important; border-color: #ddd !important; }
   .badge-confirmed { background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important; }
   .badge-likely { background: #fef3c7 !important; color: #d97706 !important; border: 1px solid #fcd34d !important; }
-  .badge-needs-validation { background: #dbeafe !important; color: #2563eb !important; border: 1px solid #93c5fd !important; }
+  .badge-needs-validation { background: #fff7ed !important; color: #ea580c !important; border: 1px solid #fdba74 !important; }
+  .print-logo { display: block !important; }
   [class*="bg-[var(--bg"] { background: #f8fafc !important; }
-  [class*="bg-[var(--accent)"] { background: #3b82f6 !important; color: white !important; }
+  [class*="bg-[var(--accent)"] { background: #e8631e !important; color: white !important; }
+  .accent-bar { background: #e8631e !important; }
   @page { margin: 0.5in; size: letter; }
 }

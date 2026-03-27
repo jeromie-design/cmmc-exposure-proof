@@ -1,4 +1,4 @@
-import { AssetCategory, CMMCConcern, EmailSecurity, BreachInfo, DomainInfo } from "./types";
+import { AssetCategory, CMMCConcern, EmailSecurity, BreachInfo, DomainInfo, GitHubExposure } from "./types";
 
 // CMMC Level 2 practice family mappings based on asset category and finding type
 const FAMILY_DETAILS: Record<string, string> = {
@@ -144,7 +144,8 @@ export function generateRedFlags(
   hasTlsIssues: boolean,
   subdomainCount: number,
   emailSecurity?: EmailSecurity,
-  breachInfo?: BreachInfo
+  breachInfo?: BreachInfo,
+  githubExposure?: GitHubExposure
 ): string[] {
   const flags: string[] = [];
 
@@ -189,6 +190,16 @@ export function generateRedFlags(
       "What incident response and credential rotation procedures were executed following known data breaches involving organizational accounts?"
     );
   }
+  if (githubExposure && githubExposure.codeFindings.length > 0) {
+    flags.push(
+      "What controls prevent sensitive configuration data, credentials, or internal references from being committed to public code repositories?"
+    );
+  }
+  if (githubExposure && githubExposure.repos.some((r) => r.concerns.length > 0)) {
+    flags.push(
+      "Are public repositories reviewed for inadvertent exposure of infrastructure details, deployment configurations, or internal tooling?"
+    );
+  }
 
   // Always add a general one
   flags.push(
@@ -202,7 +213,8 @@ export function generateNextSteps(
   findings: { category: AssetCategory; missingHeaders: string[] }[],
   emailSecurity?: EmailSecurity,
   breachInfo?: BreachInfo,
-  domainInfo?: DomainInfo
+  domainInfo?: DomainInfo,
+  githubExposure?: GitHubExposure
 ): string[] {
   const steps: string[] = [
     "Validate ownership and intended exposure of all discovered public-facing assets.",
@@ -231,6 +243,12 @@ export function generateNextSteps(
   }
   if (domainInfo && domainInfo.issues.length > 0) {
     steps.push("Address domain infrastructure concerns including DNSSEC, registration privacy, and DNS redundancy.");
+  }
+  if (githubExposure && githubExposure.codeFindings.length > 0) {
+    steps.push("Audit public code repositories for exposed credentials, configuration files, and internal infrastructure references.");
+  }
+  if (githubExposure && githubExposure.repos.some((r) => r.concerns.length > 0)) {
+    steps.push("Review flagged public repositories for inadvertent exposure of internal tooling or infrastructure details.");
   }
   steps.push("Verify monitoring and logging coverage for all public-facing services.");
   steps.push("Conduct a boundary review to ensure all public assets are within the defined CMMC assessment scope.");
