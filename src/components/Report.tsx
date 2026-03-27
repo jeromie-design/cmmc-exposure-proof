@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ScanResult, Finding, CMMCConcern, LeadInfo, EmailSecurity, BreachInfo, DomainInfo } from "@/lib/types";
 
 interface Props {
@@ -371,6 +372,82 @@ function copyEmailSummary(result: ScanResult, lead: LeadInfo) {
   navigator.clipboard.writeText(lines.join("\n"));
 }
 
+function CTASection({ result, lead }: { result: ScanResult; lead: LeadInfo }) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function handleRequestReview() {
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/request-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead,
+          scanSummary: {
+            domain: result.domain,
+            findingCount: result.findings.length,
+            breachCount: result.breachInfo?.totalBreaches || 0,
+            emailRating: result.emailSecurity?.overallRating || "N/A",
+            executiveSummary: result.executiveSummary,
+            findings: result.findings.map((f) => `[${f.confidence}] ${f.asset} — ${f.summary}`),
+            redFlags: result.redFlags,
+          },
+        }),
+      });
+      if (res.ok) {
+        setStatus("sent");
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "sent") {
+    return (
+      <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--success)]/30 rounded-lg p-8 text-center">
+        <div className="w-14 h-14 rounded-full bg-[var(--success)]/20 flex items-center justify-center mx-auto mb-4">
+          <span className="text-3xl">&#x2705;</span>
+        </div>
+        <h2 className="text-xl font-semibold mb-3">
+          Review requested
+        </h2>
+        <p className="text-[var(--text-secondary)] max-w-xl mx-auto">
+          We&apos;ve received your request and sent a confirmation to <strong className="text-[var(--text-primary)]">{lead.email}</strong>.
+          A member of our team will reach out within <strong className="text-[var(--text-primary)]">24 business hours</strong> to
+          walk through your findings and identify quick wins.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 text-center">
+      <h2 className="text-xl font-semibold mb-3">
+        Want to validate these findings?
+      </h2>
+      <p className="text-[var(--text-secondary)] max-w-xl mx-auto mb-6">
+        These findings are externally observable only. In a 30-minute review,
+        we can validate whether they represent real CMMC risk, false
+        positives, or quick remediation opportunities.
+      </p>
+      <button
+        onClick={handleRequestReview}
+        disabled={status === "sending"}
+        className="inline-block px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+      >
+        {status === "sending" ? "Requesting…" : "Schedule a Review with CinderLabs"}
+      </button>
+      {status === "error" && (
+        <p className="text-[var(--danger)] text-sm mt-3">
+          Something went wrong. Please try again or email us at info@cinderlabs.ai.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function Report({ result, lead, onReset }: Props) {
   const scanDate = new Date(result.scanTimestamp).toLocaleDateString("en-US", {
     year: "numeric",
@@ -608,24 +685,7 @@ export default function Report({ result, lead, onReset }: Props) {
         </section>
 
         {/* CTA */}
-        <section className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-8 text-center">
-          <h2 className="text-xl font-semibold mb-3">
-            Want to validate these findings?
-          </h2>
-          <p className="text-[var(--text-secondary)] max-w-xl mx-auto mb-6">
-            These findings are externally observable only. In a 30-minute review,
-            we can validate whether they represent real CMMC risk, false
-            positives, or quick remediation opportunities.
-          </p>
-          <a
-            href="https://cinderlabs.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium rounded-lg transition-colors"
-          >
-            Schedule a Review with CinderLabs
-          </a>
-        </section>
+        <CTASection result={result} lead={lead} />
 
         {/* Methodology note */}
         <div className="text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-6 space-y-2">
