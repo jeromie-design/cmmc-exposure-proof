@@ -636,7 +636,7 @@ export default function Report({ result, lead, onReset }: Props) {
       <main className="max-w-5xl mx-auto px-6 py-10">
         {/* ─── Report Cover ─── */}
         <section className="mb-12">
-          <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--bg-card)] via-[var(--bg-secondary)] to-[var(--bg-primary)] p-10 md:p-14">
+          <div className="print-cover rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--bg-card)] via-[var(--bg-secondary)] to-[var(--bg-primary)] p-10 md:p-14">
             <div className="flex items-start justify-between mb-8">
               <div className="flex items-center gap-4">
                 <Image src="/logo.png" alt="CinderLabs" width={52} height={52} className="rounded-xl" />

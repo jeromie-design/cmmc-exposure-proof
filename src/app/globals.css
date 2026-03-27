@@ -71,17 +71,214 @@ body {
 
 /* Print / PDF styles */
 @media print {
-  body { background: white !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 0.5in 0.6in; size: letter; }
+
+  /* ── Base reset ── */
+  body {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+
   .no-print { display: none !important; }
-  .finding-card { border: 1px solid #ddd !important; break-inside: avoid; page-break-inside: avoid; }
-  section { break-inside: avoid; page-break-inside: avoid; }
-  * { color: #111 !important; border-color: #ddd !important; }
-  .badge-confirmed { background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important; }
-  .badge-likely { background: #fef3c7 !important; color: #d97706 !important; border: 1px solid #fcd34d !important; }
-  .badge-needs-validation { background: #fff7ed !important; color: #ea580c !important; border: 1px solid #fdba74 !important; }
-  .print-logo { display: block !important; }
-  [class*="bg-[var(--bg"] { background: #f8fafc !important; }
-  [class*="bg-[var(--accent)"] { background: #e8631e !important; color: white !important; }
-  .accent-bar { background: #e8631e !important; }
-  @page { margin: 0.5in; size: letter; }
+  .scan-line { display: none !important; }
+
+  /* ── Override CSS variables for print ── */
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: #ffffff;
+    --border: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+  }
+
+  /* ── Typography ── */
+  h1, h2, h3 { color: #0f172a !important; }
+  p, span, li { color: #334155 !important; }
+
+  /* ── Cover / Header section ── */
+  .print-cover {
+    background: #ffffff !important;
+    border: 2px solid #e8631e !important;
+    border-radius: 0 !important;
+    border-left: 6px solid #e8631e !important;
+    padding: 2rem 2.5rem !important;
+    page-break-after: auto;
+  }
+
+  .print-cover h1 {
+    color: #0f172a !important;
+    font-size: 28pt !important;
+  }
+
+  .print-cover [class*="tracking-[0.2em]"],
+  .print-cover [class*="tracking-[0.25em]"] {
+    color: #e8631e !important;
+  }
+
+  /* ── Cards & sections ── */
+  [class*="bg-[var(--bg-card)"] {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+
+  [class*="bg-[var(--bg-secondary)"] {
+    background: #f8fafc !important;
+  }
+
+  [class*="bg-[var(--bg-primary)"] {
+    background: #ffffff !important;
+  }
+
+  [class*="border-[var(--border)"] {
+    border-color: #e2e8f0 !important;
+  }
+
+  /* ── Page breaks ── */
+  .finding-card {
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .finding-card:hover {
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ── Confidence badges ── */
+  [class*="bg-red-500/10"] {
+    background: #fef2f2 !important;
+  }
+  [class*="text-red-400"], [class*="text-red-500"] {
+    color: #dc2626 !important;
+  }
+  [class*="border-red-500/20"], [class*="border-red-500/15"] {
+    border-color: #fca5a5 !important;
+  }
+
+  [class*="bg-amber-500/10"] {
+    background: #fffbeb !important;
+  }
+  [class*="text-amber-400"], [class*="text-amber-500"] {
+    color: #d97706 !important;
+  }
+  [class*="border-amber-500/20"] {
+    border-color: #fcd34d !important;
+  }
+
+  [class*="bg-green-500/10"] {
+    background: #f0fdf4 !important;
+  }
+  [class*="text-green-400"], [class*="text-green-500"] {
+    color: #16a34a !important;
+  }
+  [class*="border-green-500/20"] {
+    border-color: #86efac !important;
+  }
+
+  [class*="bg-slate-500/10"] {
+    background: #f8fafc !important;
+  }
+  [class*="text-slate-400"] {
+    color: #64748b !important;
+  }
+
+  /* ── Accent color preservation ── */
+  [class*="text-[var(--accent)"] {
+    color: #e8631e !important;
+  }
+
+  [class*="bg-[var(--accent)"] {
+    background: #e8631e !important;
+    color: #ffffff !important;
+  }
+
+  /* ── Risk score ring SVG ── */
+  svg text {
+    fill: currentColor !important;
+  }
+
+  /* ── Missing header tags ── */
+  [class*="bg-red-500/5"] {
+    background: #fef2f2 !important;
+    border-color: #fecaca !important;
+  }
+
+  /* ── Border-left colors for finding categories ── */
+  [class*="border-l-red-500"] { border-left-color: #ef4444 !important; }
+  [class*="border-l-orange-500"] { border-left-color: #f97316 !important; }
+  [class*="border-l-amber-500"] { border-left-color: #f59e0b !important; }
+  [class*="border-l-yellow-500"] { border-left-color: #eab308 !important; }
+  [class*="border-l-blue-500"] { border-left-color: #3b82f6 !important; }
+  [class*="border-l-purple-500"] { border-left-color: #a855f7 !important; }
+  [class*="border-l-pink-500"] { border-left-color: #ec4899 !important; }
+  [class*="border-l-teal-500"] { border-left-color: #14b8a6 !important; }
+  [class*="border-l-cyan-500"] { border-left-color: #06b6d4 !important; }
+  [class*="border-l-slate-500"] { border-left-color: #64748b !important; }
+  [class*="border-l-slate-600"] { border-left-color: #475569 !important; }
+
+  /* ── Dot indicators ── */
+  [class*="bg-green-400"] { background: #22c55e !important; }
+  [class*="bg-red-400"] { background: #f87171 !important; }
+  [class*="bg-amber-500"] { background: #f59e0b !important; }
+  [class*="bg-red-500"][class*="rounded-full"] { background: #ef4444 !important; }
+  [class*="bg-slate-500"][class*="rounded-full"] { background: #64748b !important; }
+
+  /* ── Gradient backgrounds → clean white ── */
+  [class*="bg-gradient"] {
+    background: #ffffff !important;
+  }
+
+  /* ── CTA section — hide in print ── */
+  section:has(> [class*="bg-gradient-to-br"][class*="from-[var(--accent)"]) {
+    display: none !important;
+  }
+
+  /* ── Footer methodology ── */
+  footer {
+    border-top: 2px solid #e8631e !important;
+    padding-top: 1rem !important;
+    margin-top: 2rem !important;
+  }
+
+  footer p strong {
+    color: #0f172a !important;
+  }
+
+  /* ── Link colors in print ── */
+  a { color: #e8631e !important; text-decoration: none !important; }
+
+  /* ── Clean up rounded corners for print ── */
+  [class*="rounded-2xl"] { border-radius: 8px !important; }
+  [class*="rounded-xl"] { border-radius: 6px !important; }
+  [class*="rounded-lg"] { border-radius: 4px !important; }
+
+  /* ── Divider lines ── */
+  [class*="border-t"] {
+    border-top-color: #e2e8f0 !important;
+  }
+
+  /* ── Print footer with page branding ── */
+  #report-root::after {
+    content: "CMMC Exposure Proof™ — CinderLabs — cinderlabs.ai";
+    display: block;
+    text-align: center;
+    font-size: 8pt;
+    color: #94a3b8 !important;
+    padding-top: 1rem;
+    margin-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+  }
 }
