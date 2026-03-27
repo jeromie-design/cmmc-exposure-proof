@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ScanResult, Finding, CMMCConcern, LeadInfo, EmailSecurity, BreachInfo, DomainInfo, GitHubExposure } from "@/lib/types";
+import { ScanResult, Finding, CMMCConcern, LeadInfo, EmailSecurity, BreachInfo, DomainInfo, GitHubExposure, InfrastructureChecks, TLSAnalysis } from "@/lib/types";
 
 interface Props {
   result: ScanResult;
@@ -45,11 +45,12 @@ function Divider() {
 
 /* ─── Risk Score Ring ─── */
 
-function RiskScoreRing({ findings, emailRating, breachCount, githubFindings }: {
+function RiskScoreRing({ findings, emailRating, breachCount, githubFindings, infraGrade }: {
   findings: Finding[];
   emailRating: string;
   breachCount: number;
   githubFindings: number;
+  infraGrade?: string;
 }) {
   // Simple weighted score: Confirmed=3, Likely=2, NeedsValidation=1
   let score = 0;
@@ -60,8 +61,13 @@ function RiskScoreRing({ findings, emailRating, breachCount, githubFindings }: {
   else if (emailRating === "Partial") score += 1;
   score += breachCount > 0 ? 3 : 0;
   score += githubFindings > 0 ? 2 : 0;
+  // Infrastructure grade contribution
+  if (infraGrade === "F") score += 4;
+  else if (infraGrade === "D") score += 3;
+  else if (infraGrade === "C") score += 2;
+  else if (infraGrade === "B") score += 1;
 
-  const maxScore = 20;
+  const maxScore = 25;
   const normalized = Math.min(score / maxScore, 1);
   const label = normalized >= 0.6 ? "High" : normalized >= 0.3 ? "Moderate" : "Low";
   const color = normalized >= 0.6 ? "#ef4444" : normalized >= 0.3 ? "#f59e0b" : "#10b981";
@@ -359,6 +365,219 @@ function GitHubSection({ data }: { data: GitHubExposure }) {
   );
 }
 
+/* ─── TLS Grade Badge ─── */
+
+function TLSGradeBadge({ grade }: { grade: string }) {
+  const styles: Record<string, string> = {
+    A: "bg-green-500/10 text-green-400 border-green-500/20",
+    B: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    C: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    D: "bg-red-500/10 text-red-400 border-red-500/20",
+    F: "bg-red-500/10 text-red-400 border-red-500/20",
+    "N/A": "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  };
+  return (
+    <span className={`px-3 py-1 rounded-lg text-sm font-bold border ${styles[grade] || styles["N/A"]}`}>
+      {grade}
+    </span>
+  );
+}
+
+/* ─── Infrastructure Checks Section ─── */
+
+function InfrastructureSection({ data }: { data: InfrastructureChecks }) {
+  const gradeColor: Record<string, string> = {
+    A: "text-green-400", B: "text-amber-400", C: "text-orange-400",
+    D: "text-red-400", F: "text-red-400",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Overall infrastructure grade */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm text-[var(--text-secondary)]">Infrastructure security analysis across {data.tlsAnalysis.length} assets.</p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">{data.totalNewIssues} issue{data.totalNewIssues !== 1 ? "s" : ""} identified across TLS, cookies, headers, and configuration.</p>
+          </div>
+          <div className="text-center">
+            <p className={`text-3xl font-bold ${gradeColor[data.overallGrade] || "text-slate-400"}`}>{data.overallGrade}</p>
+            <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-medium mt-1">Infra Grade</p>
+          </div>
+        </div>
+      </div>
+
+      {/* TLS/SSL Analysis */}
+      {data.tlsAnalysis.length > 0 && (
+        <div>
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold mb-3">SSL / TLS Analysis</p>
+          <div className="space-y-3">
+            {data.tlsAnalysis.map((tls, i) => (
+              <div key={i} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <TLSGradeBadge grade={tls.grade} />
+                    <span className="text-sm font-semibold text-[var(--text-primary)] font-mono">
+                      {data.tlsAnalysis.length > 1 ? `Asset ${i + 1}` : "Primary Domain"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+                    {tls.protocol && <span>{tls.protocol}</span>}
+                    {tls.certDaysLeft !== null && (
+                      <span className={tls.certDaysLeft < 30 ? "text-red-400" : tls.certDaysLeft < 90 ? "text-amber-400" : ""}>
+                        Cert: {tls.certDaysLeft}d left
+                      </span>
+                    )}
+                    <span className={tls.fipsCompliant ? "text-green-400" : "text-amber-400"}>
+                      {tls.fipsCompliant ? "FIPS OK" : "Non-FIPS"}
+                    </span>
+                    <span className={tls.hasHSTS ? "text-green-400" : "text-amber-400"}>
+                      {tls.hasHSTS ? "HSTS" : "No HSTS"}
+                    </span>
+                  </div>
+                </div>
+                {tls.issues.length > 0 && (
+                  <div className="space-y-1.5 pt-3 border-t border-[var(--border)]">
+                    {tls.issues.map((issue, j) => (
+                      <p key={j} className="text-xs text-amber-400/90 flex items-start gap-2 leading-snug">
+                        <span className="mt-0.5 text-[10px]">&#x26A0;</span>
+                        <span>{issue}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cookie Security */}
+      {data.cookieSecurity.totalCookies > 0 && (
+        <div>
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold mb-3">Cookie Security</p>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm text-[var(--text-secondary)]">{data.cookieSecurity.summary}</p>
+              <span className={`w-2.5 h-2.5 rounded-full ${data.cookieSecurity.insecureCookies.length > 0 ? "bg-amber-400" : "bg-green-400"}`} />
+            </div>
+            {data.cookieSecurity.insecureCookies.length > 0 && (
+              <div className="space-y-2 pt-3 border-t border-[var(--border)]">
+                {data.cookieSecurity.insecureCookies.slice(0, 5).map((cookie, i) => (
+                  <div key={i} className="rounded-lg p-3 bg-[var(--bg-secondary)] border border-[var(--border)]">
+                    <p className="text-xs font-mono text-[var(--text-primary)] font-semibold mb-1">{cookie.name}</p>
+                    <div className="space-y-0.5">
+                      {cookie.issues.map((issue, j) => (
+                        <p key={j} className="text-[10px] text-amber-400/80">{issue}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Server Disclosure */}
+      {data.serverDisclosure.issues.length > 0 && (
+        <div>
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold mb-3">Server Version Disclosure</p>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
+            <p className="text-sm text-[var(--text-secondary)] mb-3">{data.serverDisclosure.summary}</p>
+            {data.serverDisclosure.detectedSoftware.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {data.serverDisclosure.detectedSoftware.map((sw, i) => (
+                  <span key={i} className={`text-xs px-2.5 py-1 rounded-md font-mono border ${sw.outdated ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)]"}`}>
+                    {sw.name}{sw.version ? `/${sw.version}` : ""}{sw.outdated ? " ⚠" : ""}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              {data.serverDisclosure.issues.slice(0, 4).map((issue, i) => (
+                <p key={i} className="text-xs text-amber-400/90 flex items-start gap-2 leading-snug">
+                  <span className="mt-0.5 text-[10px]">&#x26A0;</span>
+                  <span>{issue}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CORS */}
+      {data.corsIssues.issues.length > 0 && (
+        <div>
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold mb-3">CORS Configuration</p>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
+            <div className="space-y-1.5">
+              {data.corsIssues.issues.map((issue, i) => (
+                <p key={i} className="text-xs text-amber-400/90 flex items-start gap-2 leading-snug">
+                  <span className="mt-0.5 text-[10px]">&#x26A0;</span>
+                  <span>{issue}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Robots.txt */}
+      {data.robotsExposure.found && data.robotsExposure.issues.length > 0 && (
+        <div>
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold mb-3">Robots.txt Exposure</p>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
+            <p className="text-sm text-[var(--text-secondary)] mb-3">{data.robotsExposure.summary}</p>
+            {data.robotsExposure.sensitivePathsExposed.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {data.robotsExposure.sensitivePathsExposed.slice(0, 8).map((path, i) => (
+                  <span key={i} className="text-[10px] bg-red-500/5 border border-red-500/15 text-red-400/80 rounded-md px-2 py-0.5 font-mono">{path}</span>
+                ))}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              {data.robotsExposure.issues.map((issue, i) => (
+                <p key={i} className="text-xs text-amber-400/90 flex items-start gap-2 leading-snug">
+                  <span className="mt-0.5 text-[10px]">&#x26A0;</span>
+                  <span>{issue}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Directory Listings */}
+      {data.directoryListings.found && (
+        <div>
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold mb-3">Open Directory Listings</p>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
+            <p className="text-sm text-red-400 mb-2">{data.directoryListings.summary}</p>
+            <div className="space-y-1">
+              {data.directoryListings.urls.slice(0, 5).map((url, i) => (
+                <p key={i} className="text-[10px] text-[var(--text-secondary)] font-mono break-all">{url}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CMMC mapping for infra */}
+      {data.cmmcConcerns.length > 0 && (
+        <div className="pt-3 border-t border-[var(--border)] space-y-1.5">
+          {data.cmmcConcerns.slice(0, 4).map((c, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm">
+              <span className="font-mono text-[var(--accent)] text-xs font-bold mt-0.5 shrink-0">{c.family}</span>
+              <span className="text-[var(--text-secondary)] text-xs leading-relaxed">{c.summary}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Finding Card ─── */
 
 function FindingCard({ finding, index }: { finding: Finding; index: number }) {
@@ -602,7 +821,8 @@ export default function Report({ result, lead, onReset }: Props) {
     (result.emailSecurity ? result.emailSecurity.spf.issues.length + result.emailSecurity.dkim.issues.length + result.emailSecurity.dmarc.issues.length : 0) +
     (result.breachInfo?.totalBreaches || 0) +
     (result.domainInfo?.issues.length || 0) +
-    (result.githubExposure?.codeFindings.length || 0);
+    (result.githubExposure?.codeFindings.length || 0) +
+    (result.infrastructureChecks?.totalNewIssues || 0);
 
   function handleCopy() {
     copyEmailSummary(result, lead);
@@ -693,6 +913,7 @@ export default function Report({ result, lead, onReset }: Props) {
                   emailRating={result.emailSecurity?.overallRating || "Good"}
                   breachCount={result.breachInfo?.totalBreaches || 0}
                   githubFindings={result.githubExposure?.codeFindings.length || 0}
+                  infraGrade={result.infrastructureChecks?.overallGrade}
                 />
               </div>
             </div>
@@ -746,6 +967,16 @@ export default function Report({ result, lead, onReset }: Props) {
           <section className="mb-10">
             <SectionHeader>Domain Infrastructure</SectionHeader>
             <DomainInfoSection data={result.domainInfo} />
+          </section>
+        )}
+
+        {/* ─── Infrastructure Security ─── */}
+        {result.infrastructureChecks && result.infrastructureChecks.totalNewIssues > 0 && (
+          <section className="mb-10">
+            <SectionHeader accent={result.infrastructureChecks.overallGrade === "A" ? "#10b981" : result.infrastructureChecks.overallGrade === "B" ? "#f59e0b" : "#ef4444"}>
+              Infrastructure Security (800-171)
+            </SectionHeader>
+            <InfrastructureSection data={result.infrastructureChecks} />
           </section>
         )}
 

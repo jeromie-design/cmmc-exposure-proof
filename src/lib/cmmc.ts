@@ -1,4 +1,4 @@
-import { AssetCategory, CMMCConcern, EmailSecurity, BreachInfo, DomainInfo, GitHubExposure } from "./types";
+import { AssetCategory, CMMCConcern, EmailSecurity, BreachInfo, DomainInfo, GitHubExposure, InfrastructureChecks } from "./types";
 
 // CMMC Level 2 practice family mappings based on asset category and finding type
 const FAMILY_DETAILS: Record<string, string> = {
@@ -145,7 +145,8 @@ export function generateRedFlags(
   subdomainCount: number,
   emailSecurity?: EmailSecurity,
   breachInfo?: BreachInfo,
-  githubExposure?: GitHubExposure
+  githubExposure?: GitHubExposure,
+  infraChecks?: InfrastructureChecks
 ): string[] {
   const flags: string[] = [];
 
@@ -201,12 +202,32 @@ export function generateRedFlags(
     );
   }
 
+  // Infrastructure check flags
+  if (infraChecks) {
+    const hasNonFips = infraChecks.tlsAnalysis.some((t) => !t.fipsCompliant && t.grade !== "N/A");
+    if (hasNonFips) {
+      flags.push("Are all public-facing services using FIPS 140-2 validated cryptographic modules as required by CMMC Level 2?");
+    }
+    if (infraChecks.cookieSecurity.insecureCookies.length > 0) {
+      flags.push("How are session tokens protected against interception and cross-site attacks on authentication surfaces?");
+    }
+    if (infraChecks.serverDisclosure.detectedSoftware.some((s) => s.outdated)) {
+      flags.push("What is the organization's patch management timeline for publicly exposed services running outdated software?");
+    }
+    if (infraChecks.corsIssues.hasWildcard) {
+      flags.push("How does the organization control cross-origin access to web applications that may process CUI?");
+    }
+    if (infraChecks.robotsExposure.sensitivePathsExposed.length > 0) {
+      flags.push("Are sensitive application paths disclosed in robots.txt documented and access-controlled?");
+    }
+  }
+
   // Always add a general one
   flags.push(
     "Are all externally discoverable assets documented in the organization's system boundary definition and SSP?"
   );
 
-  return flags.slice(0, 7);
+  return flags.slice(0, 10);
 }
 
 export function generateNextSteps(
@@ -214,7 +235,8 @@ export function generateNextSteps(
   emailSecurity?: EmailSecurity,
   breachInfo?: BreachInfo,
   domainInfo?: DomainInfo,
-  githubExposure?: GitHubExposure
+  githubExposure?: GitHubExposure,
+  infraChecks?: InfrastructureChecks
 ): string[] {
   const steps: string[] = [
     "Validate ownership and intended exposure of all discovered public-facing assets.",
@@ -250,6 +272,29 @@ export function generateNextSteps(
   if (githubExposure && githubExposure.repos.some((r) => r.concerns.length > 0)) {
     steps.push("Review flagged public repositories for inadvertent exposure of internal tooling or infrastructure details.");
   }
+  if (infraChecks) {
+    const hasNonFips = infraChecks.tlsAnalysis.some((t) => !t.fipsCompliant && t.grade !== "N/A");
+    if (hasNonFips) {
+      steps.push("Upgrade TLS configurations to use FIPS 140-2 validated cipher suites across all public-facing services.");
+    }
+    const expiring = infraChecks.tlsAnalysis.filter((t) => t.certDaysLeft !== null && t.certDaysLeft < 90);
+    if (expiring.length > 0) {
+      steps.push("Renew SSL/TLS certificates that are expiring within 90 days to prevent service disruption.");
+    }
+    if (infraChecks.cookieSecurity.insecureCookies.length > 0) {
+      steps.push("Add Secure, HttpOnly, and SameSite flags to all session cookies on authentication surfaces.");
+    }
+    if (infraChecks.serverDisclosure.issues.length > 0) {
+      steps.push("Remove or obfuscate server version headers (Server, X-Powered-By) to reduce attacker reconnaissance.");
+    }
+    if (infraChecks.corsIssues.hasWildcard) {
+      steps.push("Replace wildcard CORS policies with explicit origin allowlists on all web applications.");
+    }
+    if (infraChecks.robotsExposure.sensitivePathsExposed.length > 0) {
+      steps.push("Review robots.txt for sensitive path disclosure and ensure listed paths have proper access controls.");
+    }
+  }
+
   steps.push("Verify monitoring and logging coverage for all public-facing services.");
   steps.push("Conduct a boundary review to ensure all public assets are within the defined CMMC assessment scope.");
 

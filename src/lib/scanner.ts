@@ -4,6 +4,7 @@ import { checkEmailSecurity } from "./email-security";
 import { checkBreaches } from "./breach-check";
 import { checkDomainInfo } from "./domain-info";
 import { checkGitHub } from "./github-check";
+import { runInfrastructureChecks } from "./infrastructure-checks";
 
 // ---- Subdomain discovery via crt.sh ----
 
@@ -174,6 +175,7 @@ interface ProbeResult {
   title: string | null;
   headers: Record<string, string>;
   hasLogin: boolean;
+  html?: string;
   error?: string;
 }
 
@@ -212,6 +214,7 @@ async function probeHost(hostname: string): Promise<ProbeResult> {
         title,
         headers: headersObj,
         hasLogin,
+        html: body,
       };
     } catch {
       continue;
@@ -394,6 +397,16 @@ export async function runScan(input: string): Promise<ScanResult> {
     if (finding) findings.push(finding);
   }
 
+  // Run infrastructure checks (TLS, cookies, server disclosure, CORS, robots.txt, dir listings)
+  const infraProbes = probeResults.map((p) => ({
+    hostname: p.hostname,
+    url: p.url,
+    statusCode: p.statusCode,
+    headers: p.headers,
+    html: p.html,
+  }));
+  const infrastructureChecks = await runInfrastructureChecks(domain, infraProbes);
+
   // Sort: Confirmed first, then Likely, then Needs Validation
   const confidenceOrder: Record<string, number> = {
     Confirmed: 0,
@@ -409,15 +422,16 @@ export async function runScan(input: string): Promise<ScanResult> {
   const hasMissing = findings.some((f) => f.missingHeaders.length >= 3);
   const hasTls = findings.some((f) => f.url.startsWith("http://"));
 
-  const redFlags = generateRedFlags(hasAuth, hasAdmin, hasRemote, hasMissing, hasTls, allSubdomains.length, emailSecurity, breachInfo, githubExposure);
-  const nextSteps = generateNextSteps(findings, emailSecurity, breachInfo, domainInfo, githubExposure);
+  const redFlags = generateRedFlags(hasAuth, hasAdmin, hasRemote, hasMissing, hasTls, allSubdomains.length, emailSecurity, breachInfo, githubExposure, infrastructureChecks);
+  const nextSteps = generateNextSteps(findings, emailSecurity, breachInfo, domainInfo, githubExposure, infrastructureChecks);
   const executiveSummary = generateExecutiveSummary(domain, findings, allSubdomains.length);
 
-  // Aggregate CMMC concerns (include GitHub concerns)
+  // Aggregate CMMC concerns (include GitHub + infrastructure concerns)
   const seenConcerns = new Set<string>();
   const allConcerns = [
     ...findings.flatMap((f) => f.cmmcConcerns),
     ...(githubExposure?.cmmcConcerns || []),
+    ...(infrastructureChecks?.cmmcConcerns || []),
   ];
   const cmmcMappingSummary = allConcerns
     .filter((c) => {
@@ -444,5 +458,6 @@ export async function runScan(input: string): Promise<ScanResult> {
     breachInfo,
     domainInfo,
     githubExposure,
+    infrastructureChecks,
   };
 }

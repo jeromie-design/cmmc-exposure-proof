@@ -75,6 +75,75 @@ export interface GitHubExposure {
   cmmcConcerns: { family: string; familyName: string; summary: string; rationale: string }[];
 }
 
+// SSL/TLS analysis
+export interface TLSAnalysis {
+  grade: "A" | "B" | "C" | "D" | "F" | "N/A";
+  protocol: string | null;
+  certIssuer: string | null;
+  certExpiry: string | null;
+  certDaysLeft: number | null;
+  hasHSTS: boolean;
+  hstsMaxAge: number | null;
+  issues: string[];
+  fipsCompliant: boolean;
+  summary: string;
+}
+
+// Cookie security
+export interface CookieSecurity {
+  totalCookies: number;
+  insecureCookies: { name: string; issues: string[] }[];
+  summary: string;
+}
+
+// Server disclosure
+export interface ServerDisclosure {
+  serverHeader: string | null;
+  poweredBy: string | null;
+  detectedSoftware: { name: string; version: string | null; outdated: boolean; cve?: string }[];
+  issues: string[];
+  summary: string;
+}
+
+// CORS analysis
+export interface CORSAnalysis {
+  hasWildcard: boolean;
+  allowCredentials: boolean;
+  origins: string | null;
+  issues: string[];
+  summary: string;
+}
+
+// Robots.txt / sitemap exposure
+export interface RobotsExposure {
+  found: boolean;
+  disallowedPaths: string[];
+  sitemapUrls: string[];
+  sensitivePathsExposed: string[];
+  issues: string[];
+  summary: string;
+}
+
+// Directory listing
+export interface DirectoryListing {
+  found: boolean;
+  urls: string[];
+  summary: string;
+}
+
+// Infrastructure checks (aggregated per scan)
+export interface InfrastructureChecks {
+  tlsAnalysis: TLSAnalysis[];
+  cookieSecurity: CookieSecurity;
+  serverDisclosure: ServerDisclosure;
+  corsIssues: CORSAnalysis;
+  robotsExposure: RobotsExposure;
+  directoryListings: DirectoryListing;
+  overallGrade: string;
+  totalNewIssues: number;
+  cmmcConcerns: CMMCConcern[];
+}
+
 // Lead capture
 export interface LeadInfo {
   name: string;
@@ -100,4 +169,5 @@ export interface ScanResult {
   breachInfo?: BreachInfo;
   domainInfo?: DomainInfo;
   githubExposure?: GitHubExposure;
+  infrastructureChecks?: InfrastructureChecks;
 }
