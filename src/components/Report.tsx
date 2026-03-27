@@ -145,14 +145,14 @@ function EmailSecuritySection({ data }: { data: EmailSecurity }) {
           </div>
         ))}
       </div>
-      {data.cmmcConcerns && data.cmmcConcerns.length > 0 && (
+      {data.overallRating !== "Good" && (
         <div className="pt-3 border-t border-[var(--border)]">
-          {data.cmmcConcerns.map((c, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm">
-              <span className="font-mono text-[var(--accent)] text-xs font-bold mt-0.5">{c.family}</span>
-              <span className="text-[var(--text-secondary)] text-xs leading-relaxed">{c.summary}</span>
-            </div>
-          ))}
+          <div className="flex items-start gap-2 text-sm">
+            <span className="font-mono text-[var(--accent)] text-xs font-bold mt-0.5">SC</span>
+            <span className="text-[var(--text-secondary)] text-xs leading-relaxed">
+              This may create assessor scrutiny around email communication protection and anti-spoofing controls (SC.L2-3.13.1, SC.L2-3.13.8).
+            </span>
+          </div>
         </div>
       )}
     </div>
