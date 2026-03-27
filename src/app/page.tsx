@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ScanResult } from "@/lib/types";
+import { ScanResult, LeadInfo } from "@/lib/types";
 import Report from "@/components/Report";
 
 const LOADING_MESSAGES = [
   "Querying certificate transparency logs…",
   "Resolving discovered hostnames…",
+  "Checking email authentication (SPF/DKIM/DMARC)…",
+  "Querying breach databases…",
+  "Analyzing domain registration…",
   "Probing public-facing assets…",
   "Inspecting security headers…",
   "Detecting authentication surfaces…",
@@ -21,12 +24,20 @@ export default function Home() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
 
+  // Lead gate state
+  const [showGate, setShowGate] = useState(false);
+  const [lead, setLead] = useState<LeadInfo>({ name: "", email: "", company: "", title: "" });
+  const [gateError, setGateError] = useState("");
+  const [pendingResult, setPendingResult] = useState<ScanResult | null>(null);
+
   async function handleScan() {
     if (!input.trim()) return;
 
     setLoading(true);
     setError("");
     setResult(null);
+    setPendingResult(null);
+    setShowGate(false);
 
     // Cycle loading messages
     let msgIdx = 0;
@@ -34,7 +45,7 @@ export default function Home() {
     const interval = setInterval(() => {
       msgIdx = Math.min(msgIdx + 1, LOADING_MESSAGES.length - 1);
       setLoadingMsg(LOADING_MESSAGES[msgIdx]);
-    }, 4000);
+    }, 3500);
 
     try {
       const res = await fetch("/api/scan", {
@@ -48,7 +59,11 @@ export default function Home() {
       if (!res.ok) {
         setError(data.error || "Scan failed.");
       } else {
-        setResult(data);
+        // Show the gate instead of the report
+        setPendingResult(data);
+        setShowGate(true);
+        // Pre-fill company from input
+        setLead((prev) => ({ ...prev, company: input.trim() }));
       }
     } catch {
       setError("Network error. Please try again.");
@@ -58,14 +73,49 @@ export default function Home() {
     }
   }
 
+  function handleGateSubmit() {
+    if (!lead.name.trim() || !lead.email.trim()) {
+      setGateError("Name and work email are required.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) {
+      setGateError("Please enter a valid email address.");
+      return;
+    }
+    // Block obvious personal emails
+    const personalDomains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "mail.com", "protonmail.com"];
+    const emailDomain = lead.email.split("@")[1]?.toLowerCase();
+    if (personalDomains.includes(emailDomain)) {
+      setGateError("Please use your work email address.");
+      return;
+    }
+
+    setGateError("");
+
+    // Fire lead to API (non-blocking re-send with lead data)
+    if (pendingResult) {
+      fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: input.trim(), lead }),
+      }).catch(() => {});
+    }
+
+    setResult(pendingResult);
+    setShowGate(false);
+  }
+
   // If we have results, show the report
   if (result) {
     return (
       <Report
         result={result}
+        lead={lead}
         onReset={() => {
           setResult(null);
+          setPendingResult(null);
           setInput("");
+          setLead({ name: "", email: "", company: "", title: "" });
         }}
       />
     );
@@ -100,6 +150,70 @@ export default function Home() {
       {/* Main */}
       <main className="flex-1 flex items-center justify-center px-6">
         <div className="max-w-2xl w-full text-center">
+          {/* Email Gate Modal */}
+          {showGate && (
+            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl max-w-md w-full p-8">
+                <div className="mb-6">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">&#x1F4CB;</span>
+                  </div>
+                  <h2 className="text-xl font-bold mb-2">Your report is ready</h2>
+                  <p className="text-[var(--text-secondary)] text-sm">
+                    We found <strong className="text-[var(--text-primary)]">{pendingResult?.findings.length || 0} findings</strong> for{" "}
+                    <strong className="text-[var(--text-primary)]">{pendingResult?.domain}</strong>.
+                    Enter your details to view the full report.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Full name *"
+                    value={lead.name}
+                    onChange={(e) => setLead({ ...lead, name: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] text-sm"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Work email *"
+                    value={lead.email}
+                    onChange={(e) => setLead({ ...lead, email: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Company"
+                    value={lead.company}
+                    onChange={(e) => setLead({ ...lead, company: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Title (optional)"
+                    value={lead.title}
+                    onChange={(e) => setLead({ ...lead, title: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] text-sm"
+                  />
+                </div>
+
+                {gateError && (
+                  <p className="text-[var(--danger)] text-xs mt-2">{gateError}</p>
+                )}
+
+                <button
+                  onClick={handleGateSubmit}
+                  className="w-full mt-4 px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium rounded-lg transition-colors"
+                >
+                  View Report
+                </button>
+                <p className="text-[var(--text-secondary)] text-xs mt-3 text-center">
+                  No spam. Your data stays private.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Title */}
           <h1 className="text-4xl font-bold mb-3 tracking-tight">
             CMMC Exposure Proof
@@ -110,8 +224,8 @@ export default function Home() {
           </p>
           <p className="text-[var(--text-secondary)] text-sm mb-10 max-w-lg mx-auto">
             Enter a company domain or name. We&apos;ll check public-facing assets,
-            security posture signals, and map findings to CMMC-relevant concerns
-            &mdash; using only externally observable evidence.
+            email authentication, breach exposure, and security posture
+            &mdash; mapped to CMMC-relevant concerns using only external evidence.
           </p>
 
           {/* Input */}

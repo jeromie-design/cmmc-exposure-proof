@@ -34,6 +34,44 @@ export interface Finding {
   } | null;
 }
 
+// Email security (SPF/DKIM/DMARC)
+export interface EmailSecurity {
+  spf: { found: boolean; record: string | null; issues: string[] };
+  dkim: { found: boolean; selector: string | null; issues: string[] };
+  dmarc: { found: boolean; record: string | null; policy: string | null; issues: string[] };
+  overallRating: "Good" | "Partial" | "Weak" | "Missing";
+  summary: string;
+}
+
+// HIBP breach data
+export interface BreachInfo {
+  totalBreaches: number;
+  breaches: { name: string; date: string; dataClasses: string[]; pwnCount: number }[];
+  summary: string;
+}
+
+// WHOIS / domain info
+export interface DomainInfo {
+  registrar: string | null;
+  creationDate: string | null;
+  expirationDate: string | null;
+  registrantOrg: string | null;
+  registrantCountry: string | null;
+  privacyProtection: boolean;
+  dnssec: boolean;
+  nameservers: string[];
+  issues: string[];
+  summary: string;
+}
+
+// Lead capture
+export interface LeadInfo {
+  name: string;
+  email: string;
+  company: string;
+  title?: string;
+}
+
 export interface ScanResult {
   domain: string;
   inputType: "domain" | "company_name";
@@ -47,4 +85,7 @@ export interface ScanResult {
   nextSteps: string[];
   executiveSummary: string;
   cmmcMappingSummary: CMMCConcern[];
+  emailSecurity?: EmailSecurity;
+  breachInfo?: BreachInfo;
+  domainInfo?: DomainInfo;
 }

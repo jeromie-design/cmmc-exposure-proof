@@ -1,4 +1,4 @@
-import { AssetCategory, CMMCConcern } from "./types";
+import { AssetCategory, CMMCConcern, EmailSecurity, BreachInfo, DomainInfo } from "./types";
 
 // CMMC Level 2 practice family mappings based on asset category and finding type
 const FAMILY_DETAILS: Record<string, string> = {
@@ -142,7 +142,9 @@ export function generateRedFlags(
   hasRemoteAccess: boolean,
   hasMissingHeaders: boolean,
   hasTlsIssues: boolean,
-  subdomainCount: number
+  subdomainCount: number,
+  emailSecurity?: EmailSecurity,
+  breachInfo?: BreachInfo
 ): string[] {
   const flags: string[] = [];
 
@@ -177,15 +179,31 @@ export function generateRedFlags(
     );
   }
 
+  if (emailSecurity && emailSecurity.overallRating !== "Good") {
+    flags.push(
+      "What controls are in place to prevent email spoofing and phishing targeting the organization's domain?"
+    );
+  }
+  if (breachInfo && breachInfo.totalBreaches > 0) {
+    flags.push(
+      "What incident response and credential rotation procedures were executed following known data breaches involving organizational accounts?"
+    );
+  }
+
   // Always add a general one
   flags.push(
     "Are all externally discoverable assets documented in the organization's system boundary definition and SSP?"
   );
 
-  return flags.slice(0, 5);
+  return flags.slice(0, 7);
 }
 
-export function generateNextSteps(findings: { category: AssetCategory; missingHeaders: string[] }[]): string[] {
+export function generateNextSteps(
+  findings: { category: AssetCategory; missingHeaders: string[] }[],
+  emailSecurity?: EmailSecurity,
+  breachInfo?: BreachInfo,
+  domainInfo?: DomainInfo
+): string[] {
   const steps: string[] = [
     "Validate ownership and intended exposure of all discovered public-facing assets.",
   ];
@@ -204,6 +222,15 @@ export function generateNextSteps(findings: { category: AssetCategory; missingHe
   }
   if (hasMissing) {
     steps.push("Establish and enforce a security header baseline for all public-facing web services.");
+  }
+  if (emailSecurity && emailSecurity.overallRating !== "Good") {
+    steps.push("Implement or strengthen email authentication controls (SPF, DKIM, DMARC) to prevent domain spoofing.");
+  }
+  if (breachInfo && breachInfo.totalBreaches > 0) {
+    steps.push("Review credential rotation and incident response posture in light of known breach exposure.");
+  }
+  if (domainInfo && domainInfo.issues.length > 0) {
+    steps.push("Address domain infrastructure concerns including DNSSEC, registration privacy, and DNS redundancy.");
   }
   steps.push("Verify monitoring and logging coverage for all public-facing services.");
   steps.push("Conduct a boundary review to ensure all public assets are within the defined CMMC assessment scope.");

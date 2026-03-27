@@ -1,5 +1,8 @@
 import { Finding, AssetCategory, Confidence, ScanResult } from "./types";
 import { mapConcerns, generateRedFlags, generateNextSteps } from "./cmmc";
+import { checkEmailSecurity } from "./email-security";
+import { checkBreaches } from "./breach-check";
+import { checkDomainInfo } from "./domain-info";
 
 // ---- Subdomain discovery via crt.sh ----
 
@@ -362,8 +365,14 @@ export async function runScan(input: string): Promise<ScanResult> {
     }
   }
 
-  // Discover subdomains
-  const allSubdomains = await discoverSubdomains(domain);
+  // Discover subdomains + run new checks in parallel
+  const [allSubdomains, emailSecurity, breachInfo, domainInfo] = await Promise.all([
+    discoverSubdomains(domain),
+    checkEmailSecurity(domain),
+    checkBreaches(domain),
+    checkDomainInfo(domain),
+  ]);
+
   const prioritized = prioritizeSubdomains(allSubdomains, domain);
 
   // Probe top subdomains in parallel (batched)
@@ -398,8 +407,8 @@ export async function runScan(input: string): Promise<ScanResult> {
   const hasMissing = findings.some((f) => f.missingHeaders.length >= 3);
   const hasTls = findings.some((f) => f.url.startsWith("http://"));
 
-  const redFlags = generateRedFlags(hasAuth, hasAdmin, hasRemote, hasMissing, hasTls, allSubdomains.length);
-  const nextSteps = generateNextSteps(findings);
+  const redFlags = generateRedFlags(hasAuth, hasAdmin, hasRemote, hasMissing, hasTls, allSubdomains.length, emailSecurity, breachInfo);
+  const nextSteps = generateNextSteps(findings, emailSecurity, breachInfo, domainInfo);
   const executiveSummary = generateExecutiveSummary(domain, findings, allSubdomains.length);
 
   // Aggregate CMMC concerns
@@ -426,5 +435,8 @@ export async function runScan(input: string): Promise<ScanResult> {
     nextSteps,
     executiveSummary,
     cmmcMappingSummary,
+    emailSecurity,
+    breachInfo,
+    domainInfo,
   };
 }

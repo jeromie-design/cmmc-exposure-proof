@@ -1,9 +1,10 @@
 "use client";
 
-import { ScanResult, Finding, CMMCConcern } from "@/lib/types";
+import { ScanResult, Finding, CMMCConcern, LeadInfo, EmailSecurity, BreachInfo, DomainInfo } from "@/lib/types";
 
 interface Props {
   result: ScanResult;
+  lead: LeadInfo;
   onReset: () => void;
 }
 
@@ -26,6 +27,20 @@ function CategoryIcon({ category }: { category: string }) {
   if (category.includes("Admin")) return <span>&#x2699;&#xFE0F;</span>;
   if (category.includes("Remote")) return <span>&#x1F310;</span>;
   return <span>&#x1F4C4;</span>;
+}
+
+function RatingBadge({ rating }: { rating: string }) {
+  const colorMap: Record<string, string> = {
+    Good: "bg-green-500/15 text-green-400 border-green-500/30",
+    Partial: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    Weak: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    Missing: "bg-red-500/15 text-red-400 border-red-500/30",
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${colorMap[rating] || colorMap.Missing}`}>
+      {rating}
+    </span>
+  );
 }
 
 function FindingCard({ finding, index }: { finding: Finding; index: number }) {
@@ -115,7 +130,6 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
 }
 
 function CMMCMappingSection({ concerns }: { concerns: CMMCConcern[] }) {
-  // Group by family
   const grouped: Record<string, CMMCConcern[]> = {};
   for (const c of concerns) {
     if (!grouped[c.family]) grouped[c.family] = [];
@@ -155,9 +169,169 @@ function CMMCMappingSection({ concerns }: { concerns: CMMCConcern[] }) {
   );
 }
 
-function copyEmailSummary(result: ScanResult) {
+function EmailSecuritySection({ data }: { data: EmailSecurity }) {
+  const checks = [
+    { label: "SPF", found: data.spf.found, record: data.spf.record, issues: data.spf.issues },
+    { label: "DKIM", found: data.dkim.found, record: data.dkim.selector ? `Selector: ${data.dkim.selector}` : null, issues: data.dkim.issues },
+    { label: "DMARC", found: data.dmarc.found, record: data.dmarc.record, issues: data.dmarc.issues },
+  ];
+
+  return (
+    <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-[var(--text-secondary)]">{data.summary}</p>
+        <RatingBadge rating={data.overallRating} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {checks.map((check) => (
+          <div key={check.label} className="border border-[var(--border)] rounded-lg p-3 bg-[var(--bg-secondary)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono font-bold text-sm">{check.label}</span>
+              <span className={`w-2 h-2 rounded-full ${check.found ? "bg-green-400" : "bg-red-400"}`} />
+            </div>
+            {check.record && (
+              <p className="text-xs text-[var(--text-secondary)] font-mono break-all mb-2 max-h-16 overflow-y-auto">
+                {check.record}
+              </p>
+            )}
+            {check.issues.length > 0 && (
+              <div className="space-y-1">
+                {check.issues.map((issue, i) => (
+                  <p key={i} className="text-xs text-[var(--warning)]">{issue}</p>
+                ))}
+              </div>
+            )}
+            {check.issues.length === 0 && check.found && (
+              <p className="text-xs text-green-400">Configured correctly</p>
+            )}
+          </div>
+        ))}
+      </div>
+      {(data.overallRating !== "Good") && (
+        <div className="mt-3 text-sm border-l-2 border-[var(--warning)] pl-3">
+          <span className="font-mono text-[var(--warning)] text-xs">SC</span>{" "}
+          <span className="text-[var(--text-secondary)]">
+            This may create assessor scrutiny around email communication protection and anti-spoofing controls (SC.L2-3.13.1, SC.L2-3.13.8).
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BreachSection({ data }: { data: BreachInfo }) {
+  if (data.totalBreaches === 0) {
+    return (
+      <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-green-400" />
+          <p className="text-sm text-[var(--text-secondary)]">{data.summary}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-[var(--text-secondary)]">{data.summary}</p>
+        <span className="badge-confirmed px-2 py-0.5 rounded text-xs font-medium">
+          {data.totalBreaches} Breach{data.totalBreaches > 1 ? "es" : ""}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {data.breaches.slice(0, 5).map((breach, i) => (
+          <div key={i} className="flex items-center justify-between border border-[var(--border)] rounded p-3 bg-[var(--bg-secondary)]">
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{breach.name}</p>
+              <p className="text-xs text-[var(--text-secondary)]">
+                {breach.date} &bull; {breach.pwnCount.toLocaleString()} accounts
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1 ml-4">
+              {breach.dataClasses.slice(0, 3).map((dc) => (
+                <span key={dc} className="text-xs bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5">
+                  {dc}
+                </span>
+              ))}
+              {breach.dataClasses.length > 3 && (
+                <span className="text-xs text-[var(--text-secondary)]">+{breach.dataClasses.length - 3}</span>
+              )}
+            </div>
+          </div>
+        ))}
+        {data.breaches.length > 5 && (
+          <p className="text-xs text-[var(--text-secondary)] text-center pt-1">
+            +{data.breaches.length - 5} additional breaches
+          </p>
+        )}
+      </div>
+      <div className="mt-3 text-sm border-l-2 border-[var(--danger)] pl-3">
+        <span className="font-mono text-[var(--danger)] text-xs">IR / IA</span>{" "}
+        <span className="text-[var(--text-secondary)]">
+          Known breaches may create assessor scrutiny around incident response procedures, credential management, and continuous monitoring practices.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DomainInfoSection({ data }: { data: DomainInfo }) {
+  return (
+    <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-card)]">
+      <p className="text-sm text-[var(--text-secondary)] mb-4">{data.summary}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {data.registrar && (
+          <div className="text-sm">
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">Registrar</p>
+            <p className="text-[var(--text-primary)] font-medium truncate">{data.registrar}</p>
+          </div>
+        )}
+        {data.creationDate && (
+          <div className="text-sm">
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">Registered</p>
+            <p className="text-[var(--text-primary)] font-medium">{new Date(data.creationDate).toLocaleDateString()}</p>
+          </div>
+        )}
+        {data.expirationDate && (
+          <div className="text-sm">
+            <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">Expires</p>
+            <p className="text-[var(--text-primary)] font-medium">{new Date(data.expirationDate).toLocaleDateString()}</p>
+          </div>
+        )}
+        <div className="text-sm">
+          <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">DNSSEC</p>
+          <p className={`font-medium ${data.dnssec ? "text-green-400" : "text-[var(--warning)]"}`}>
+            {data.dnssec ? "Enabled" : "Not Enabled"}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 mb-3">
+        <span className={`text-xs px-2 py-0.5 rounded border ${data.privacyProtection ? "border-green-500/30 text-green-400" : "border-[var(--warning)]/30 text-[var(--warning)]"}`}>
+          {data.privacyProtection ? "Privacy Protection Active" : "No Privacy Protection"}
+        </span>
+        <span className="text-xs px-2 py-0.5 rounded border border-[var(--border)] text-[var(--text-secondary)]">
+          {data.nameservers.length} Nameserver{data.nameservers.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+      {data.issues.length > 0 && (
+        <div className="space-y-1 mt-3">
+          {data.issues.map((issue, i) => (
+            <p key={i} className="text-xs text-[var(--warning)] flex items-start gap-2">
+              <span className="mt-0.5">&#x26A0;</span>
+              <span>{issue}</span>
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function copyEmailSummary(result: ScanResult, lead: LeadInfo) {
   const lines: string[] = [
     `CMMC Exposure Proof — ${result.domain}`,
+    `Prepared for: ${lead.name}${lead.company ? ` (${lead.company})` : ""}`,
     `Scan Date: ${new Date(result.scanTimestamp).toLocaleDateString()}`,
     "",
     "EXECUTIVE SUMMARY",
@@ -168,6 +342,16 @@ function copyEmailSummary(result: ScanResult) {
 
   for (const f of result.findings) {
     lines.push(`\n- [${f.confidence}] ${f.asset} — ${f.summary}`);
+  }
+
+  if (result.emailSecurity) {
+    lines.push(`\nEMAIL SECURITY: ${result.emailSecurity.overallRating}`);
+    lines.push(result.emailSecurity.summary);
+  }
+
+  if (result.breachInfo && result.breachInfo.totalBreaches > 0) {
+    lines.push(`\nBREACH EXPOSURE: ${result.breachInfo.totalBreaches} known breaches`);
+    lines.push(result.breachInfo.summary);
   }
 
   lines.push("\nASSESSOR RED FLAGS");
@@ -187,15 +371,25 @@ function copyEmailSummary(result: ScanResult) {
   navigator.clipboard.writeText(lines.join("\n"));
 }
 
-export default function Report({ result, onReset }: Props) {
+export default function Report({ result, lead, onReset }: Props) {
   const scanDate = new Date(result.scanTimestamp).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
+  // Count total issues across all new checks
+  const emailIssueCount = result.emailSecurity
+    ? result.emailSecurity.spf.issues.length +
+      result.emailSecurity.dkim.issues.length +
+      result.emailSecurity.dmarc.issues.length
+    : 0;
+  const totalIssues = result.findings.length + emailIssueCount +
+    (result.breachInfo?.totalBreaches || 0) +
+    (result.domainInfo?.issues.length || 0);
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" id="report-root">
       {/* Header */}
       <header className="border-b border-[var(--border)] px-6 py-4 sticky top-0 bg-[var(--bg-primary)] z-40 no-print">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -209,16 +403,18 @@ export default function Report({ result, onReset }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => copyEmailSummary(result)}
+              onClick={() => copyEmailSummary(result, lead)}
               className="px-3 py-1.5 text-sm border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
+              title="Copy a text summary to clipboard"
             >
               Copy Summary
             </button>
             <button
               onClick={() => window.print()}
               className="px-3 py-1.5 text-sm border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors"
+              title="Print or save as PDF"
             >
-              Print / PDF
+              Export PDF
             </button>
             <button
               onClick={onReset}
@@ -237,14 +433,20 @@ export default function Report({ result, onReset }: Props) {
             <span>External Exposure Report</span>
             <span>&mdash;</span>
             <span>{scanDate}</span>
+            {lead.name && (
+              <>
+                <span>&mdash;</span>
+                <span>Prepared for {lead.name}</span>
+              </>
+            )}
           </div>
           <h1 className="text-3xl font-bold mb-1">{result.domain}</h1>
-          <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
+          <div className="flex items-center gap-4 text-sm text-[var(--text-secondary)] flex-wrap">
             <span>{result.subdomainsDiscovered} hostnames discovered</span>
             <span>&bull;</span>
             <span>{result.assetsProbed} assets probed</span>
             <span>&bull;</span>
-            <span>{result.findings.length} findings</span>
+            <span>{totalIssues} total issues</span>
             <span>&bull;</span>
             <span>{(result.durationMs / 1000).toFixed(1)}s</span>
           </div>
@@ -264,41 +466,77 @@ export default function Report({ result, onReset }: Props) {
         </section>
 
         {/* Stats bar */}
-        {result.findings.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              {
-                label: "Confirmed",
-                value: result.findings.filter((f) => f.confidence === "Confirmed").length,
-                color: "var(--danger)",
-              },
-              {
-                label: "Likely",
-                value: result.findings.filter((f) => f.confidence === "Likely").length,
-                color: "var(--warning)",
-              },
-              {
-                label: "Needs Validation",
-                value: result.findings.filter((f) => f.confidence === "Needs Validation").length,
-                color: "var(--accent)",
-              },
-              {
-                label: "CMMC Families Affected",
-                value: new Set(result.cmmcMappingSummary.map((c) => c.family)).size,
-                color: "var(--text-primary)",
-              },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-4 text-center"
-              >
-                <p className="text-2xl font-bold" style={{ color: s.color }}>
-                  {s.value}
-                </p>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[
+            {
+              label: "Confirmed",
+              value: result.findings.filter((f) => f.confidence === "Confirmed").length,
+              color: "var(--danger)",
+            },
+            {
+              label: "Likely",
+              value: result.findings.filter((f) => f.confidence === "Likely").length,
+              color: "var(--warning)",
+            },
+            {
+              label: "Needs Validation",
+              value: result.findings.filter((f) => f.confidence === "Needs Validation").length,
+              color: "var(--accent)",
+            },
+            {
+              label: "CMMC Families",
+              value: new Set(result.cmmcMappingSummary.map((c) => c.family)).size,
+              color: "var(--text-primary)",
+            },
+            {
+              label: "Known Breaches",
+              value: result.breachInfo?.totalBreaches || 0,
+              color: result.breachInfo?.totalBreaches ? "var(--danger)" : "var(--success)",
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-4 text-center"
+            >
+              <p className="text-2xl font-bold" style={{ color: s.color }}>
+                {s.value}
+              </p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Email Security */}
+        {result.emailSecurity && (
+          <section>
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+              Email Authentication
+            </h2>
+            <EmailSecuritySection data={result.emailSecurity} />
+          </section>
+        )}
+
+        {/* Breach Exposure */}
+        {result.breachInfo && (
+          <section>
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <span className={`w-1 h-6 rounded ${result.breachInfo.totalBreaches > 0 ? "bg-[var(--danger)]" : "bg-[var(--success)]"}`} />
+              Breach Exposure
+            </h2>
+            <BreachSection data={result.breachInfo} />
+          </section>
+        )}
+
+        {/* Domain Infrastructure */}
+        {result.domainInfo && (
+          <section>
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <span className="w-1 h-6 bg-[var(--accent)] rounded" />
+              Domain Infrastructure
+            </h2>
+            <DomainInfoSection data={result.domainInfo} />
+          </section>
         )}
 
         {/* Findings */}
@@ -306,7 +544,7 @@ export default function Report({ result, onReset }: Props) {
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
               <span className="w-1 h-6 bg-[var(--accent)] rounded" />
-              Confirmed External Findings
+              External Asset Findings
             </h2>
             <div className="space-y-4">
               {result.findings.map((f, i) => (
@@ -395,13 +633,15 @@ export default function Report({ result, onReset }: Props) {
             <strong>Methodology:</strong> This report was generated using
             passive, non-intrusive external checks including certificate
             transparency log analysis, DNS resolution, HTTP response inspection,
-            and security header evaluation. No port scanning, vulnerability
-            exploitation, or internal network access was performed.
+            security header evaluation, email authentication record analysis (SPF/DKIM/DMARC),
+            public breach database queries, and domain registration analysis.
+            No port scanning, vulnerability exploitation, or internal network access was performed.
           </p>
           <p>
             <strong>Limitations:</strong> External-only analysis cannot
             determine internal security controls, MFA enforcement, or actual
-            compliance posture. Findings should be validated by qualified
+            compliance posture. Breach data reflects public disclosures and may not
+            include all incidents. Findings should be validated by qualified
             personnel before remediation.
           </p>
           <p>
